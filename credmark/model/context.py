@@ -7,6 +7,7 @@ from credmark.utils.historical_util import HistoricalUtil
 from .errors import ModelRunError
 from .ledger import Ledger
 from .web3 import Web3Registry
+from .engine.dask_client import DaskClient
 
 from credmark.types.dto import DTO
 from credmark.types.data.block_number import BlockNumber
@@ -31,14 +32,20 @@ class ModelContext():
     """
 
     def __init__(self, chain_id: int, block_number: int,
-                 web3_registry: Web3Registry):
+                 web3_registry: Web3Registry,
+                 dask: Union[str,None]=None):
         self.chain_id = chain_id
         self.block_number = BlockNumber(block_number, self)
-        self._web3 = None
         self._web3_registry = web3_registry
+        self._dask = dask
+        self.reset_properties()
+
+    def reset_properties(self):
+        self._web3 = None
         self._ledger = None
         self._contract_util = None
         self._historical_util = None
+        self._dask_client = None
 
     @property
     def web3(self):
@@ -47,6 +54,29 @@ class ModelContext():
             self._web3.eth.default_block = self.block_number if \
                 self.block_number is not None else 'latest'
         return self._web3
+
+    @property
+    def dask_client(self):
+        if self._dask_client is None:
+            if self._dask is None:
+                dask_client = None
+            else:
+                if self._dask.startswith('localhost:'):
+                    n_workers = int(self._dask[self._dask.index(':')+1:])
+                    dask_client = DaskClient(web3_http_provider=self.web3.provider.endpoint_uri,
+                                             block_number=self.block_number,
+                                             address=None,
+                                             n_workers=n_workers,
+                                             open_browser=False,
+                                             )
+                else:
+                    dask_client = DaskClient(web3_http_provider=self.web3.provider.endpoint_uri,
+                                             block_number=self.block_number,
+                                             address=self._dask,
+                                             open_browser=False,
+                                             )
+            self._dask_client = dask_client
+        return self._dask_client
 
     @property
     def ledger(self) -> Ledger:
@@ -59,7 +89,7 @@ class ModelContext():
         if self._contract_util is None:
             self._contract_util = ContractUtil(self)
         return self._contract_util
-    
+
     @property
     def historical(self) -> HistoricalUtil:
         if self._historical_util is None:

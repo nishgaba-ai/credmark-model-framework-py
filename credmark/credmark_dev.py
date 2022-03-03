@@ -67,6 +67,7 @@ def main():
     parser_run.add_argument('--depth', help=argparse.SUPPRESS, type=int, required=False, default=0)
     parser_run.add_argument('model-slug', default='(missing model-slug arg)',
                             help='Slug for the model to run.')
+    parser_run.add_argument('--dask', help='enable dask with configuration: localhost:4(-processes) or tcp://localhost:8786')
     parser_run.set_defaults(func=run_model, depth=0)
 
     if len(sys.argv) == 1:
@@ -169,6 +170,7 @@ def run_model(args):
         api_url: Union[str, None] = args['api_url']
         run_id: Union[str, None] = args['run_id']
         depth: int = args['depth']
+        dask: Union[str, None] = args['dask']
 
         if args['input']:
             input = json.loads(args['input'])
@@ -186,7 +188,8 @@ def run_model(args):
             chain_to_provider_url=chain_to_provider_url,
             api_url=api_url,
             run_id=run_id,
-            depth=depth)
+            depth=depth,
+            dask=dask)
         json.dump(result, sys.stdout)
 
     except (MaxModelRunDepthError, MissingModelError, ModelRunError) as e:

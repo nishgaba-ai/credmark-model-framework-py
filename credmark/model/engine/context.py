@@ -1,10 +1,16 @@
 import logging
 import os
-from typing import Union
+
+from typing import (
+    Union,
+    List,
+)
+
 from credmark.model.context import ModelContext
 from credmark.model.errors import MaxModelRunDepthError, ModelRunError
 from credmark.model.engine.model_api import ModelApi
 from credmark.model.engine.model_loader import ModelLoader
+from credmark.model.engine.dask_client import Pipe
 from credmark.model.web3 import Web3Registry
 from credmark.types.dto import DTO
 
@@ -38,7 +44,8 @@ class EngineModelContext(ModelContext):
                                      chain_to_provider_url: Union[dict[str, str], None] = None,
                                      api_url: Union[str, None] = None,
                                      run_id: Union[str, None] = None,
-                                     depth: int = 0):
+                                     depth: int = 0,
+                                     dask: Union[str, None] = None):
         """
         Parameters:
             run_id (str | None): a string to identify a particular model run. It is
@@ -53,6 +60,7 @@ class EngineModelContext(ModelContext):
             model_loader = ModelLoader(['.'])
 
         api_key = os.environ.get('CREDMARK_API_KEY')
+
         # If we have an api url or a key, we create the api
         # TODO: When public api is available, we will always create the api
         api = ModelApi(api_url, api_key) if api_url or api_key else None
@@ -60,7 +68,7 @@ class EngineModelContext(ModelContext):
         web3_registry = Web3Registry(chain_to_provider_url)
 
         context = EngineModelContext(
-            chain_id, block_number, web3_registry, run_id, depth, model_loader, api)
+            chain_id, block_number, web3_registry, run_id, depth, model_loader, api, dask)
 
         # We set the block_number in the context so we pass in
         # None for block_number to the run_model method.
@@ -85,8 +93,9 @@ class EngineModelContext(ModelContext):
                  run_id: Union[str, None],
                  depth: int,
                  model_loader: ModelLoader,
-                 api: Union[ModelApi, None]):
-        super().__init__(chain_id, block_number, web3_registry)
+                 api: Union[ModelApi, None],
+                 dask: Union[str, None]):
+        super().__init__(chain_id, block_number, web3_registry, dask)
         self.run_id = run_id
         self.__depth = depth
         self.__dependencies = {}
@@ -110,6 +119,12 @@ class EngineModelContext(ModelContext):
             else:
                 for version, count in versions.items():
                     self._add_dependency(slug, version, count)
+
+    def run_pipe(self, pipe: Pipe, outputs: List[str]):
+        if self.dask_client is not None:
+            return pipe.run(self.dask_client, outputs)
+        else:
+            raise ModelRunError('No dask client is setup')
 
     def run_model(self,
                   slug,
@@ -175,27 +190,16 @@ class EngineModelContext(ModelContext):
             raise MaxModelRunDepthError('Max model run depth')
 
         if model_class is not None:
-            saved_block_number = self.block_number
-            saved_web3 = self._web3
-
-            if block_number is not None:
-                self.block_number = block_number
-            self._web3 = None
-
             input = self.transform_data_for_dto(input, model_class.inputDTO, slug, 'input')
 
-            model = model_class(self)
+            model = model_class(self) # copied the self, so we modify the copy below
+            model.context.block_number = block_number
+
             output = model.run(input)
 
             output = self.transform_data_for_dto(output, model_class.outputDTO, slug, 'output')
-
             version = model_class.version
             self._add_dependency(slug, version, 1)
-
-            if block_number is not None:
-                self.block_number = saved_block_number
-            self._web3 = saved_web3
-
         else:
             # api is not None here or get_model_class() would have
             # raised an error

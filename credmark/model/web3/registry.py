@@ -1,12 +1,9 @@
-
 import os
 import json
 from typing import Union
 from web3 import HTTPProvider, Web3
 
-
 class Web3Registry:
-
     @staticmethod
     def load_providers_from_env():
         providers_json = os.environ.get('CREDMARK_WEB3_PROVIDERS')
