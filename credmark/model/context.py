@@ -8,8 +8,13 @@ from credmark.utils.historical_util import HistoricalUtil
 
 from .errors import ModelRunError
 from .ledger import Ledger
+<< << << < HEAD
 from .web3 import Web3Registry, Web3
 from .engine.cluster import Cluster
+== == == =
+from .web3 import Web3Registry
+from .engine.dask_client import DaskClient
+>>>>>> > 011d031(init commit)
 
 from credmark.types.dto import DTO
 from credmark.types.data.block_number import BlockNumber
@@ -60,11 +65,11 @@ class ModelContext():
         if ModelContext.current_context is None:
             ModelContext.current_context: Union[ModelContext, None] = self
 
-    @ property
+    @property
     def web3_proivder_url(self):
         return self._web3_proivder_url
 
-    @ property
+    @property
     def block_number(self):
         return self._block_number
 
@@ -72,7 +77,7 @@ class ModelContext():
     def block_number(self, block_number: int):
         self._block_number = BlockNumber(block_number)
 
-    @ property
+    @property
     def web3(self) -> Web3:
         if self._web3 is None:
             self._web3 = self._web3_registry.web3_for_chain_id(self.chain_id)
@@ -80,7 +85,7 @@ class ModelContext():
                 self.block_number is not None else 'latest'
         return self._web3
 
-    @ property
+    @property
     def cluster(self):
         if self._cluster is None:
             if self._cluster is None:
@@ -94,26 +99,27 @@ class ModelContext():
             self._cluster = cluster
         return self._cluster
 
-    @ property
+    @property
     def dask_utils(self) -> DaskUtils:
         if self._dask_utils is None:
             self._dask_utils = DaskUtils(self)
         return self._dask_utils
 
-    @ property
+    @property
     def ledger(self) -> Ledger:
         if self._ledger is None:
             self._ledger = Ledger(self)
         return self._ledger
 
-    @ property
+    @property
     def contracts(self) -> ContractUtil:
         if self._contract_util is None:
             self._contract_util = ContractUtil(self)
         return self._contract_util
 
-    @ property
-    def historical(self) -> HistoricalUtil:
+
+   @property
+   def historical(self) -> HistoricalUtil:
         if self._historical_util is None:
             self._historical_util = HistoricalUtil(self)
         return self._historical_util
