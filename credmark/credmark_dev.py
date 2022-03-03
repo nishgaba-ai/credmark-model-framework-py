@@ -195,17 +195,11 @@ def run_model(args):
             api_url=api_url,
             run_id=run_id,
             depth=depth,
-<< << << < HEAD
             cluster=cluster)
-
-
-== == == =
-            dask = dask,)
->> >>>> > 7bb163d(Upload package when running with a Hosted cluster)
         json.dump(result, sys.stdout)
 
     except (MaxModelRunDepthError, MissingModelError, ModelRunError) as e:
-        msg={
+        msg = {
             "statusCode": 500,
             "error": "Model run error",
             "message": str(e)

@@ -126,10 +126,7 @@ class EngineModelContext(ModelContext):
                     self._add_dependency(slug, version, count)
 
     def run_pipe(self, pipe: Pipe, outputs: List[str]):
-        if self.cluster is not None:
-            return pipe.run(self.cluster, outputs)
-        else:
-            raise ModelRunError('No cluster client is setup')
+        return pipe.run(self.cluster, outputs)
 
     def run_model(self,
                   slug,
@@ -195,6 +192,9 @@ class EngineModelContext(ModelContext):
             raise MaxModelRunDepthError(f'Max model run depth hit {self.__depth}')
 
         if model_class is not None:
+
+
+<< << << < HEAD
             if self.__depth == 1:
                 # At top level, we use this context
                 context = self
@@ -226,6 +226,18 @@ class EngineModelContext(ModelContext):
                 # Now we add dependency for this run
                 version = model_class.version
                 self._add_dependency(slug, version, 1)
+== == == =
+            input = self.transform_data_for_dto(input, model_class.inputDTO, slug, 'input')
+
+            model = model_class(self)  # copied the self, so we modify the copy below
+            model.context.block_number = block_number
+
+            output = model.run(input)
+
+            output = self.transform_data_for_dto(output, model_class.outputDTO, slug, 'output')
+            version = model_class.version
+            self._add_dependency(slug, version, 1)
+>>>>>> > 011d031(init commit)
         else:
             # api is not None here or get_model_class() would have
             # raised an error
