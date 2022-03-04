@@ -4,7 +4,7 @@ from typing import Type, Union
 from .context import ModelContext
 from credmark.types.dto import DTO
 
-from copy import copy
+import copy
 
 
 class Model:

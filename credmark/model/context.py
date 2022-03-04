@@ -8,13 +8,8 @@ from credmark.utils.historical_util import HistoricalUtil
 
 from .errors import ModelRunError
 from .ledger import Ledger
-<< << << < HEAD
 from .web3 import Web3Registry, Web3
 from .engine.cluster import Cluster
-== == == =
-from .web3 import Web3Registry
-from .engine.dask_client import DaskClient
->>>>>> > 011d031(init commit)
 
 from credmark.types.dto import DTO
 from credmark.types.data.block_number import BlockNumber
@@ -45,6 +40,9 @@ class ModelContext():
                  web3_registry: Web3Registry,
                  cluster: Union[str, None] = None,
                  model_paths: Union[List[str], None] = None):
+        if ModelContext.current_context is None:
+            ModelContext.current_context: Union[ModelContext, None] = self
+
         self.chain_id = chain_id
         self._block_number = BlockNumber(block_number)
         self._model_paths = model_paths
@@ -61,9 +59,6 @@ class ModelContext():
         self._historical_util = None
         self._dask_client = None
         self._dask_utils = None
-
-        if ModelContext.current_context is None:
-            ModelContext.current_context: Union[ModelContext, None] = self
 
     @property
     def web3_proivder_url(self):
@@ -93,7 +88,7 @@ class ModelContext():
             else:
                 cluster = Cluster(web3_http_provider=self.web3.provider.endpoint_uri,
                                   block_number=self.block_number,
-                                  cluster=cluster,
+                                  cluster=self._cluster,
                                   open_browser=False,
                                   self._model_paths)
             self._cluster = cluster
@@ -101,6 +96,12 @@ class ModelContext():
 
     @property
     def dask_utils(self) -> DaskUtils:
+        if self._dask_utils is None:
+            self._dask_utils = DaskUtils(self)
+        return self._dask_utils
+
+    @property
+    def dask_utils(self) -> Ledger:
         if self._dask_utils is None:
             self._dask_utils = DaskUtils(self)
         return self._dask_utils
