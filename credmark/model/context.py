@@ -9,6 +9,7 @@ from credmark.types.dto import DTO
 from credmark.types.data.block_number import BlockNumber
 from credmark.model.utils.contract_util import ContractUtil
 from credmark.model.utils.historical_util import HistoricalUtil
+from credmark.model.utils.dask_utils import DaskUtils
 
 DTOT = TypeVar('DTOT')
 
@@ -35,8 +36,8 @@ class ModelContext():
         self.chain_id = chain_id
 
         self._block_number = BlockNumber(block_number)
-        self._web3 = None
         self._web3_registry = web3_registry
+        self._web3_proivder_url = web3_registry.provider_url(chain_id)
         self._cluster = cluster
         self.reset_services()
 
@@ -45,10 +46,17 @@ class ModelContext():
         self._ledger = None
         self._contract_util = None
         self._historical_util = None
+        self._dask_client = None
+        self._dask_utils = None
+
         self._cluster = None
 
         if ModelContext.current_context is None:
             ModelContext.current_context: Union[ModelContext, None] = self
+
+    @property
+    def web3_proivder_url(self):
+        return self._web3_proivder_url
 
     @property
     def block_number(self):
@@ -92,6 +100,12 @@ class ModelContext():
                                       )
             self._cluster = cluster
         return self._cluster
+
+    @property
+    def dask_utils(self) -> Ledger:
+        if self._dask_utils is None:
+            self._dask_utils = DaskUtils(self)
+        return self._dask_utils
 
     @property
     def ledger(self) -> Ledger:
