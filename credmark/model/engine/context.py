@@ -10,7 +10,7 @@ from credmark.model.context import ModelContext
 from credmark.model.errors import MaxModelRunDepthError, ModelRunError
 from credmark.model.engine.model_api import ModelApi
 from credmark.model.engine.model_loader import ModelLoader
-from credmark.model.engine.cluster import Pipe
+from credmark.model.engine.pipe import Pipe
 from credmark.model.web3 import Web3Registry
 from credmark.types.dto import DTO
 
@@ -68,7 +68,7 @@ class EngineModelContext(ModelContext):
         web3_registry = Web3Registry(chain_to_provider_url)
 
         context = EngineModelContext(
-            chain_id, block_number, web3_registry, run_id, depth, model_loader, api, cluster)
+            chain_id, block_number, web3_registry, run_id, depth, model_loader, api, cluster, model_loader.model_paths)
 
         # We set the block_number in the context so we pass in
         # None for block_number to the run_model method.
@@ -94,15 +94,16 @@ class EngineModelContext(ModelContext):
                  depth: int,
                  model_loader: ModelLoader,
                  api: Union[ModelApi, None],
-                 cluster: Union[str, None]):
-        super().__init__(chain_id, block_number, web3_registry, cluster)
+                 cluster: Union[str, None],
+                 model_paths: List[str]):
+        super().__init__(chain_id, block_number, web3_registry, cluster, model_paths)
         self.run_id = run_id
         self.__depth = depth
         self.__dependencies = {}
         self.__model_loader = model_loader
         self.__api = api
 
-    @property
+    @ property
     def dependencies(self):
         return self.__dependencies
 

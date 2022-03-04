@@ -9,6 +9,8 @@ import dask.distributed as dask_dist
 
 from web3 import Web3, HTTPProvider
 
+from credmark.types.data.address import Address
+
 
 class DaskUtils:
     def __init__(self,

@@ -1,5 +1,11 @@
 from abc import abstractmethod
-from typing import Any, Type, TypeVar, Union, overload
+from typing import (
+    Any, Type, TypeVar, Union, overload, List
+)
+from credmark.types.data.contract import Contract
+
+from credmark.utils.historical_util import HistoricalUtil
+
 from .errors import ModelRunError
 from .ledger import Ledger
 from .web3 import Web3Registry, Web3
@@ -32,10 +38,12 @@ class ModelContext():
 
     def __init__(self, chain_id: int, block_number: int,
                  web3_registry: Web3Registry,
-                 cluster: Union[str, None] = None):
+                 cluster: Union[str, None] = None,
+                 model_paths: Union[List[str], None] = None):
         self.chain_id = chain_id
-
         self._block_number = BlockNumber(block_number)
+        self._model_paths = model_paths
+
         self._web3_registry = web3_registry
         self._web3_proivder_url = web3_registry.provider_url(chain_id)
         self._cluster = cluster
@@ -49,24 +57,22 @@ class ModelContext():
         self._dask_client = None
         self._dask_utils = None
 
-        self._cluster = None
-
         if ModelContext.current_context is None:
             ModelContext.current_context: Union[ModelContext, None] = self
 
-    @property
+    @ property
     def web3_proivder_url(self):
         return self._web3_proivder_url
 
-    @property
+    @ property
     def block_number(self):
         return self._block_number
 
-    @block_number.setter
+    @ block_number.setter
     def block_number(self, block_number: int):
         self._block_number = BlockNumber(block_number)
 
-    @property
+    @ property
     def web3(self) -> Web3:
         if self._web3 is None:
             self._web3 = self._web3_registry.web3_for_chain_id(self.chain_id)
@@ -74,52 +80,39 @@ class ModelContext():
                 self.block_number is not None else 'latest'
         return self._web3
 
-    @property
+    @ property
     def cluster(self):
         if self._cluster is None:
             if self._cluster is None:
                 cluster = None
             else:
-                if self._cluster == 'sequence':
-                    cluster = Cluster(web3_http_provider=self.web3.provider.endpoint_uri,
-                                      block_number=self.block_number,
-                                      address='sequence')
-                elif self._cluster.startswith('localhost:'):
-                    n_workers = int(self._cluster[self._cluster.index(':') + 1:])
-                    cluster = Cluster(web3_http_provider=self.web3.provider.endpoint_uri,
-                                      block_number=self.block_number,
-                                      address=None,
-                                      n_workers=n_workers,
-                                      open_browser=False,
-                                      )
-                else:
-                    cluster = Cluster(web3_http_provider=self.web3.provider.endpoint_uri,
-                                      block_number=self.block_number,
-                                      address=self._cluster,
-                                      open_browser=False,
-                                      )
+                cluster = Cluster(web3_http_provider=self.web3.provider.endpoint_uri,
+                                  block_number=self.block_number,
+                                  cluster=cluster,
+                                  open_browser=False,
+                                  self._model_paths)
             self._cluster = cluster
         return self._cluster
 
-    @property
-    def dask_utils(self) -> Ledger:
+    @ property
+    def dask_utils(self) -> DaskUtils:
         if self._dask_utils is None:
             self._dask_utils = DaskUtils(self)
         return self._dask_utils
 
-    @property
+    @ property
     def ledger(self) -> Ledger:
         if self._ledger is None:
             self._ledger = Ledger(self)
         return self._ledger
 
-    @property
+    @ property
     def contracts(self) -> ContractUtil:
         if self._contract_util is None:
             self._contract_util = ContractUtil(self)
         return self._contract_util
 
-    @property
+    @ property
     def historical(self) -> HistoricalUtil:
         if self._historical_util is None:
             self._historical_util = HistoricalUtil(self)
