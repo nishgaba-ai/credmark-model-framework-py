@@ -12,6 +12,7 @@ from .engine.dask_client import DaskClient
 from credmark.types.dto import DTO
 from credmark.types.data.block_number import BlockNumber
 from credmark.utils.contract_util import ContractUtil
+from credmark.utils.dask_utils import DaskUtils
 
 DTOT = TypeVar('DTOT')
 
@@ -37,6 +38,7 @@ class ModelContext():
         self.chain_id = chain_id
         self.block_number = BlockNumber(block_number, self)
         self._web3_registry = web3_registry
+        self._web3_proivder_url = web3_registry.provider_url(chain_id)
         self._dask = dask
         self.reset_properties()
 
@@ -46,6 +48,11 @@ class ModelContext():
         self._contract_util = None
         self._historical_util = None
         self._dask_client = None
+        self._dask_utils = None
+
+    @property
+    def web3_proivder_url(self):
+        return self._web3_proivder_url
 
     @property
     def web3(self):
@@ -63,20 +70,22 @@ class ModelContext():
             else:
                 if self._dask.startswith('localhost:'):
                     n_workers = int(self._dask[self._dask.index(':')+1:])
-                    dask_client = DaskClient(web3_http_provider=self.web3.provider.endpoint_uri,
-                                             block_number=self.block_number,
-                                             address=None,
+                    dask_client = DaskClient(address=None,
                                              n_workers=n_workers,
                                              open_browser=False,
                                              )
                 else:
-                    dask_client = DaskClient(web3_http_provider=self.web3.provider.endpoint_uri,
-                                             block_number=self.block_number,
-                                             address=self._dask,
+                    dask_client = DaskClient(address=self._dask,
                                              open_browser=False,
                                              )
             self._dask_client = dask_client
         return self._dask_client
+
+    @property
+    def dask_utils(self) -> Ledger:
+        if self._dask_utils is None:
+            self._dask_utils = DaskUtils(self)
+        return self._dask_utils
 
     @property
     def ledger(self) -> Ledger:

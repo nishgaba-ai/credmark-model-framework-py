@@ -43,23 +43,7 @@ class DaskClient():
     A class provides launch and/or connect to a Dask Host.
     """
 
-    @staticmethod
-    def call(f, *args, **kwargs):
-        return f(*args, **kwargs)
-
-    @staticmethod
-    def get_worker():
-        worker = dask_dist.get_worker()  # The worker on which this task is running
-        return worker.address
-
-    @staticmethod
-    def get_client():
-        client = dask_dist.get_client()
-        return client
-
     def __init__(self,
-                 web3_http_provider: str,
-                 block_number: int,
                  address=None,
                  n_workers=10,
                  threads_per_worker=1,
@@ -75,70 +59,6 @@ class DaskClient():
         self.__client = client
         if open_browser:
             webbrowser.open(self.__client.dashboard_link, new=1)
-
-        self.web3_http_provider = web3_http_provider
-        self.block_number = block_number
-
-    def init_web3(self, force=False):
-        worker = dask_dist.get_worker()
-        http_provider = self.web3_http_provider
-        block_number = self.block_number
-        with worker._lock:
-            if not hasattr(worker, "_web3"):
-                worker._web3 = {}
-                has_web3 = False
-            else:
-                has_web3 = ( http_provider in worker._web3 and
-                             block_number in worker._web3[http_provider] and
-                             not force )
-            if not has_web3:
-                web3 = Web3(HTTPProvider(http_provider))
-                web3.eth.default_block = block_number if \
-                    block_number is not None else 'latest'
-                worker._web3[http_provider] = {block_number: {'web3': web3}}
-                return True
-            else:
-                return False
-
-    def create_contract(self, contract_address: Address, contract_abi: str, force=False):
-        worker = dask_dist.get_worker()
-        http_provider = self.web3_http_provider
-        block_number = self.block_number
-        with worker._lock:
-            web3_dict = worker._web3[http_provider][block_number]
-            web3 = web3_dict['web3']
-            if contract_address not in web3_dict or force:
-                contract = web3.eth.contract(
-                            address=contract_address.checksum,
-                            abi=contract_abi)
-                worker._web3[http_provider][block_number][contract_address] = contract
-                return True
-            else:
-                return False
-
-    def get_contract(self, contract_address: Address, contract_abi: str):
-        worker = dask_dist.get_worker()
-        self.init_web3()
-        self.create_contract(contract_address, contract_abi)
-        http_provider = self.web3_http_provider
-        block_number = self.block_number
-        with worker._lock:
-            contract = worker._web3[http_provider][block_number][contract_address]
-            return contract
-
-    def get_contract_function(self, contract_address: Address, contract_abi: str, func_name: str):
-        worker = dask_dist.get_worker()
-        contract = self.get_contract(contract_address, contract_abi)
-        with worker._lock:
-            func = contract[func_name]
-            return func
-
-    def contract_function_call(self, contract_address: Address, contract_abi: str, func_name: str, *param):
-        worker = dask_dist.get_worker()
-        contract_func = self.get_contract_function(contract_address, contract_abi, func_name)
-        with worker._lock:
-            result = contract_func(*param).call()
-            return result
 
     def get_client(self):
         return self.__client

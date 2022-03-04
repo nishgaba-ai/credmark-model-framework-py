@@ -7,59 +7,31 @@ from typing import (
 
 import dask.distributed as dask_dist
 
-from web3 import Web3
+from web3 import Web3, HTTPProvider
 
-class ContractUtil:
-
+class DaskUtils:
     def __init__(self,
                  context,
                  ) -> None:
         self.context = context
 
-    def load_description(self,
-                         address: Union[Address, None] = None,
-                         name: Union[str, None] = None,
-                         protocol: Union[str, None] = None,
-                         product: Union[str, None] = None,
-                         abi: Union[dict, None] = None,
-                         tags: Union[dict, None] = None) -> List[Contract]:
-        if name is None and address is None and abi is None:
-            raise Exception
+    @staticmethod
+    def call(f, *args, **kwargs):
+        return f(*args, **kwargs)
 
-            # This means we can end up with different KINDS of contracts together. probably no bueno # pylint disable=locally-disabled,line-too-long
-            # we could do it if we could return a contract that is a subclass of web3.contract.Contract
-            # but I don't understand how to do that with a web3 context
+    @staticmethod
+    def get_worker():
+        worker = dask_dist.get_worker()  # The worker on which this task is running
+        return worker.address
 
-        contracts: List[Contract] = []
-        q = {}
-
-        if address is not None:
-            q["contractAddress"] = address
-        if name is not None:
-            q["contractName"] = name
-        if protocol is not None:
-            q["protocol"] = protocol
-        if product is not None:
-            q["product"] = product
-        if tags is not None:
-            q["tags"] = tags
-        if abi is not None:
-            q["abi"] = abi
-
-        contract_q_results = self.context.run_model('contract.metadata', q)
-        for contract in contract_q_results['contracts']:
-            contracts.append(Contract(_context=self.context, _instance=None, **contract))
-        return contracts
-
-    def load_address(self, address: str) -> Contract:
-        contract_q_results = self.context.run_model(
-            'contract.metadata', {'contractAddress': address})
-        contract_obj = Contract(_context=self.context, _instance=None, **(contract_q_results['contracts'][0]))
-        return contract_obj
+    @staticmethod
+    def get_client():
+        client = dask_dist.get_client()
+        return client
 
     def init_web3(self, force=False):
         worker = dask_dist.get_worker()
-        http_provider = self.context.web3_http_provider
+        http_provider = self.context.web3_proivder_url
         block_number = self.context.block_number
         with worker._lock:
             if not hasattr(worker, "_web3"):
@@ -78,10 +50,11 @@ class ContractUtil:
             else:
                 return False
 
+    ## TODO: they shall create from ContractDTO instead of address/abi.
     def create_contract(self, contract_address: Address, contract_abi: str, force=False):
         worker = dask_dist.get_worker()
-        http_provider = self.web3_http_provider
-        block_number = self.block_number
+        http_provider = self.context.web3_proivder_url
+        block_number = self.context.block_number
         with worker._lock:
             web3_dict = worker._web3[http_provider][block_number]
             web3 = web3_dict['web3']
@@ -98,8 +71,8 @@ class ContractUtil:
         worker = dask_dist.get_worker()
         self.init_web3()
         self.create_contract(contract_address, contract_abi)
-        http_provider = self.web3_http_provider
-        block_number = self.block_number
+        http_provider = self.context.web3_proivder_url
+        block_number = self.context.block_number
         with worker._lock:
             contract = worker._web3[http_provider][block_number][contract_address]
             return contract

@@ -4,7 +4,7 @@ from typing import Type, Union
 from .context import ModelContext
 from credmark.types.dto import DTO
 
-from copy import copy
+import copy
 
 class Model:
     """
@@ -27,7 +27,8 @@ class Model:
     outputDTO: Union[Type[DTO], None]
 
     def __init__(self, context: ModelContext):
-        self.context = copy(context)
+        # Shallow copy is good here as we will do reset_properties() immediately to recreate helper objects.
+        self.context = copy.copy(context)
         self.context.reset_properties()
 
         # Configure our logger.
