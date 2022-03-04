@@ -1,7 +1,15 @@
+import os
+import sys
+import zipfile
 import webbrowser
 import uuid
 import inspect
 from typing import Any, Dict, List
+import tempfile
+
+import importlib
+import types
+
 
 from typing import (
     Dict,
@@ -38,6 +46,15 @@ class DaskResult(TypedDict):
     deps: list
     futures: Optional[list]
 
+def reload_models(mod):
+    mod = importlib.reload(mod)
+    reloaded = []
+    for k, v in mod.__dict__.items():
+        if isinstance(v, types.ModuleType):
+            setattr(mod, k, importlib.import_module(v.__name__))
+            reloaded.append((k,v))
+    return reloaded
+
 class DaskClient():
     """
     A class provides launch and/or connect to a Dask Host.
@@ -60,6 +77,41 @@ class DaskClient():
         if open_browser:
             webbrowser.open(self.__client.dashboard_link, new=1)
 
+    def upload_mod(self, mod_paths):
+        def everything(s):
+            # print(s)
+            return True
+
+        fp = tempfile.NamedTemporaryFile('w',suffix='.zip',prefix='models_pkg_')
+        fp.close()
+
+        with zipfile.PyZipFile(fp.name, mode="w", optimize=2) as zip_pkg:
+            for mod_dir in mod_paths:
+                all_init_files = []
+                fp_init = os.path.join(mod_dir, '__init__.py')
+                if not os.path.isfile(fp_init):
+                    with open(fp_init, 'w') as f:
+                        f.write('')
+                        all_init_files.append(fp_init)
+                for root, dirs, files in os.walk(mod_dir):
+                    for name in dirs:
+                        if name != '__pycache__':
+                            fp_init = os.path.join(root, name, '__init__.py')
+                            if not os.path.isfile(fp_init):
+                                with open(fp_init, 'w') as f:
+                                    f.write('')
+                                    all_init_files.append(fp_init)
+
+                zip_pkg.writepy(mod_dir, filterfunc=everything)
+
+        self.__client.upload_file(fp.name)
+        self.get_client.submit(lambda x: sys.path, 0 ).result()
+        for mod_dir in mod_paths:
+            mod = importlib.import_module(mod_dir)
+            self.get_client.submit(lambda x, mod=mod: reload_models(mod), 1).result()
+        os.remove(fp.name)
+
+    @property
     def get_client(self):
         return self.__client
 
@@ -116,6 +168,7 @@ class DaskClient():
                 return { 'result': res_dict, 'dsk': dsk_opt4, 'deps': dsk_deps4 }
             else:
                 return { 'result': res_dict, 'dsk': dsk_opt4, 'deps': dsk_deps4, 'futures': res_future}
+
 
 # n means it depends on the last n-task to finish but not get input
 def call(f, *args, **kwargs):

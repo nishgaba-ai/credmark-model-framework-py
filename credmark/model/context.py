@@ -1,5 +1,7 @@
 from abc import abstractmethod
-from typing import Any, Type, TypeVar, Union, overload
+from typing import (
+    Any, Type, TypeVar, Union, overload, List
+)
 from credmark.types.data.contract import Contract
 
 from credmark.utils.historical_util import HistoricalUtil
@@ -34,9 +36,11 @@ class ModelContext():
 
     def __init__(self, chain_id: int, block_number: int,
                  web3_registry: Web3Registry,
-                 dask: Union[str,None]=None):
+                 dask: Union[str,None]=None,
+                 model_paths: Union[List[str], None] = None):
         self.chain_id = chain_id
         self.block_number = BlockNumber(block_number, self)
+        self._model_paths = model_paths
         self._web3_registry = web3_registry
         self._web3_proivder_url = web3_registry.provider_url(chain_id)
         self._dask = dask
@@ -78,7 +82,10 @@ class ModelContext():
                     dask_client = DaskClient(address=self._dask,
                                              open_browser=False,
                                              )
+                    dask_client.upload_mod(self._model_paths)
+
             self._dask_client = dask_client
+
         return self._dask_client
 
     @property

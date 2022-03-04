@@ -95,7 +95,7 @@ class EngineModelContext(ModelContext):
                  model_loader: ModelLoader,
                  api: Union[ModelApi, None],
                  dask: Union[str, None]):
-        super().__init__(chain_id, block_number, web3_registry, dask)
+        super().__init__(chain_id, block_number, web3_registry, dask, model_loader.model_paths)
         self.run_id = run_id
         self.__depth = depth
         self.__dependencies = {}

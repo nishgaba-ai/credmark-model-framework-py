@@ -189,7 +189,7 @@ def run_model(args):
             api_url=api_url,
             run_id=run_id,
             depth=depth,
-            dask=dask)
+            dask=dask,)
         json.dump(result, sys.stdout)
 
     except (MaxModelRunDepthError, MissingModelError, ModelRunError) as e:
