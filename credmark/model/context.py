@@ -107,6 +107,12 @@ class ModelContext():
         return self._dask_utils
 
     @property
+    def dask_utils(self) -> Ledger:
+        if self._dask_utils is None:
+            self._dask_utils = DaskUtils(self)
+        return self._dask_utils
+
+    @property
     def ledger(self) -> Ledger:
         if self._ledger is None:
             self._ledger = Ledger(self)
