@@ -40,6 +40,9 @@ class ModelContext():
                  web3_registry: Web3Registry,
                  cluster: Union[str, None] = None,
                  model_paths: Union[List[str], None] = None):
+        if ModelContext.current_context is None:
+            ModelContext.current_context: Union[ModelContext, None] = self
+
         self.chain_id = chain_id
         self._block_number = BlockNumber(block_number)
         self._model_paths = model_paths
@@ -56,9 +59,6 @@ class ModelContext():
         self._historical_util = None
         self._dask_client = None
         self._dask_utils = None
-
-        if ModelContext.current_context is None:
-            ModelContext.current_context: Union[ModelContext, None] = self
 
     @ property
     def web3_proivder_url(self):
@@ -88,7 +88,7 @@ class ModelContext():
             else:
                 cluster = Cluster(web3_http_provider=self.web3.provider.endpoint_uri,
                                   block_number=self.block_number,
-                                  cluster=cluster,
+                                  cluster=self._cluster,
                                   open_browser=False,
                                   self._model_paths)
             self._cluster = cluster
@@ -100,7 +100,7 @@ class ModelContext():
             self._dask_utils = DaskUtils(self)
         return self._dask_utils
 
-    @ property
+    @property
     def ledger(self) -> Ledger:
         if self._ledger is None:
             self._ledger = Ledger(self)
@@ -112,8 +112,10 @@ class ModelContext():
             self._contract_util = ContractUtil(self)
         return self._contract_util
 
-    @ property
-    def historical(self) -> HistoricalUtil:
+
+
+   @property
+   def historical(self) -> HistoricalUtil:
         if self._historical_util is None:
             self._historical_util = HistoricalUtil(self)
         return self._historical_util

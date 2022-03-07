@@ -10,7 +10,11 @@ from credmark.model.context import ModelContext
 from credmark.model.errors import MaxModelRunDepthError, ModelRunError
 from credmark.model.engine.model_api import ModelApi
 from credmark.model.engine.model_loader import ModelLoader
+<< << << < HEAD
 from credmark.model.engine.pipe import Pipe
+== == == =
+from credmark.model.engine.dask_client import Pipe
+>>>>>> > 7bb163d23851265f7fd519e2d3d025d4c685ef27
 from credmark.model.web3 import Web3Registry
 from credmark.types.dto import DTO
 
@@ -45,7 +49,13 @@ class EngineModelContext(ModelContext):
                                      api_url: Union[str, None] = None,
                                      run_id: Union[str, None] = None,
                                      depth: int = 0,
+<< << << < HEAD
                                      cluster: Union[str, None] = None):
+
+
+== == == =
+                                     dask: Union[str, None] = None):
+>>>>>> > 7bb163d23851265f7fd519e2d3d025d4c685ef27
         """
         Parameters:
             run_id (str | None): a string to identify a particular model run. It is
@@ -57,17 +67,17 @@ class EngineModelContext(ModelContext):
         """
 
         if model_loader is None:
-            model_loader = ModelLoader(['.'])
+            model_loader=ModelLoader(['.'])
 
-        api_key = os.environ.get('CREDMARK_API_KEY')
+        api_key=os.environ.get('CREDMARK_API_KEY')
 
         # If we have an api url or a key, we create the api
         # TODO: When public api is available, we will always create the api
-        api = ModelApi(api_url, api_key) if api_url or api_key else None
+        api=ModelApi(api_url, api_key) if api_url or api_key else None
 
-        web3_registry = Web3Registry(chain_to_provider_url)
+        web3_registry=Web3Registry(chain_to_provider_url)
 
-        context = EngineModelContext(
+        context=EngineModelContext(
             chain_id, block_number, web3_registry, run_id, depth, model_loader, api, cluster, model_loader.model_paths)
 
         # We set the block_number in the context so we pass in
