@@ -10,7 +10,7 @@ from .web3 import Web3Registry, Web3
 from .engine.cluster import Cluster
 
 from credmark.types.dto import DTO
-import credmark.types
+from credmark.types.data.block_number import BlockNumber
 from credmark.model.utils.contract_util import ContractUtil
 from credmark.model.utils.historical_util import HistoricalUtil
 from credmark.model.utils.dask_utils import DaskUtils
@@ -38,11 +38,9 @@ class ModelContext():
                  web3_registry: Web3Registry,
                  cluster: Union[str, None] = None,
                  model_paths: Union[List[str], None] = None):
-        if ModelContext.current_context is None:
-            ModelContext.current_context: Union[ModelContext, None] = self
 
         self.chain_id = chain_id
-        self._block_number = credmark.types.BlockNumber(block_number)
+        self._block_number = BlockNumber(block_number)
         self._model_paths = model_paths
 
         self._web3_registry = web3_registry
@@ -95,7 +93,8 @@ class ModelContext():
                 cluster = None
             else:
                 cluster = Cluster(cluster=self._cluster,
-                                  web3_http_provider=self.web3.provider.endpoint_uri,
+                                  web3_http_provider=self._web3_registry.provider_url(
+                                      self.chain_id),
                                   block_number=self.block_number,
                                   model_paths=[] if self._model_paths is None else self._model_paths,
                                   open_browser=False)
