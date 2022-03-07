@@ -69,20 +69,21 @@ class ModelApi:
                 f'Error running api request for {slug} {self.__url}: {err}')
             if resp is not None:
                 logger.error(f'Error api response {resp.text}')
+
                 if resp.status_code == 404:
                     raise MissingModelError(
                         slug, version, 'Model not found from api')
-                else:
-                    try:
-                        error_result = resp.json()
-                    except Exception:
-                        error_result = {
-                            "statusCode": resp.status_code,
-                            "error": "Model run error",
-                            "message": resp.text
-                        }
-                    raise ModelRunRequestError(
-                        'Model run request error', error_result)
+
+                try:
+                    error_result = resp.json()
+                except Exception:
+                    error_result = {
+                        "statusCode": resp.status_code,
+                        "error": "Model run error",
+                        "message": resp.text
+                    }
+                raise ModelRunRequestError(
+                    'Model run request error', error_result)
             raise err
         finally:
             # Ensure the response is closed in case we ever don't

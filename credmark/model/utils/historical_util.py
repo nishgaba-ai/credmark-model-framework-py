@@ -60,11 +60,11 @@ class HistoricalUtil:
                 window=window_timestamp,
                 interval=interval_timestamp
             )
+
             return self.context.run_model('series.time-window-interval',
                                           input,
                                           return_type=BlockSeriesDTO)
         else:
-
             if end_timestamp is None:
                 end_timestamp = self.context.block_number.timestamp
             if snap_clock is not None:
