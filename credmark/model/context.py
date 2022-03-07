@@ -4,8 +4,6 @@ from typing import (
 )
 from credmark.types.data.contract import Contract
 
-from credmark.utils.historical_util import HistoricalUtil
-
 from .errors import ModelRunError
 from .ledger import Ledger
 from .web3 import Web3Registry, Web3
@@ -44,7 +42,7 @@ class ModelContext():
             ModelContext.current_context: Union[ModelContext, None] = self
 
         self.chain_id = chain_id
-        self._block_number = BlockNumber(block_number)
+        self._block_number = BlockNumber(block_number, self)
         self._model_paths = model_paths
 
         self._web3_registry = web3_registry
@@ -68,7 +66,7 @@ class ModelContext():
     def block_number(self):
         return self._block_number
 
-    @ block_number.setter
+    @block_number.setter
     def block_number(self, block_number: int):
         self._block_number = BlockNumber(block_number)
 
@@ -86,53 +84,40 @@ class ModelContext():
             if self._cluster is None:
                 cluster = None
             else:
-                cluster = Cluster(web3_http_provider=self.web3.provider.endpoint_uri,
+                cluster = Cluster(cluster=self._cluster,
+                                  web3_http_provider=self.web3.provider.endpoint_uri,
                                   block_number=self.block_number,
-                                  cluster=self._cluster,
-                                  open_browser=False,
-                                  self._model_paths)
+                                  model_paths=[] if self._model_paths is None else self._model_paths,
+                                  open_browser=False)
             self._cluster = cluster
         return self._cluster
 
-    @property
+    @ property
     def dask_utils(self) -> DaskUtils:
         if self._dask_utils is None:
             self._dask_utils = DaskUtils(self)
         return self._dask_utils
 
-    @property
-    def dask_utils(self) -> Ledger:
-        if self._dask_utils is None:
-            self._dask_utils = DaskUtils(self)
-        return self._dask_utils
-
-    @property
-    def dask_utils(self) -> Ledger:
-        if self._dask_utils is None:
-            self._dask_utils = DaskUtils(self)
-        return self._dask_utils
-
-    @property
+    @ property
     def ledger(self) -> Ledger:
         if self._ledger is None:
             self._ledger = Ledger(self)
         return self._ledger
 
-    @property
+    @ property
     def contracts(self) -> ContractUtil:
         if self._contract_util is None:
             self._contract_util = ContractUtil(self)
         return self._contract_util
 
-
-   @property
-   def historical(self) -> HistoricalUtil:
+    @ property
+    def historical(self) -> HistoricalUtil:
         if self._historical_util is None:
             self._historical_util = HistoricalUtil(self)
         return self._historical_util
 
-    @overload
-    @abstractmethod
+    @ overload
+    @ abstractmethod
     def run_model(self,
                   slug: str,
                   input: Union[dict, DTO, None],

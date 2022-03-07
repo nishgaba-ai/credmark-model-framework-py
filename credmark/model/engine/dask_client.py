@@ -36,6 +36,8 @@ from dask.optimization import (
 from credmark.model.errors import ModelRunError
 from credmark.types.data.block_number import BlockNumber
 
+import credmark
+
 
 class DaskResult(TypedDict):
     result: Any
@@ -63,8 +65,8 @@ class DaskClient():
                  cluster: str,
                  web3_http_provider: str,
                  block_number: BlockNumber,
-                 open_browser: bool = False,
-                 model_paths: List[str] = []
+                 model_paths: List[str] = [],
+                 open_browser: bool = False
                  ):
 
         if cluster == 'sequence':
@@ -84,7 +86,8 @@ class DaskClient():
             client = dask_dist.Client(address=cluster, set_as_default=False,)
             print(
                 f'Connected to cluster at {cluster} with dashboard at {client.dashboard_link}')
-            self.upload_mod(model_paths)
+            breakpoint()
+            self.upload_mod(model_paths + [])
             dashboard_link = client.dashboard_link
         else:
             raise ModelRunError(f'Unrecognizable cluster setting = {cluster}')
@@ -92,6 +95,9 @@ class DaskClient():
         self.__client = client
         if dashboard_link is not None and open_browser:
             webbrowser.open(dashboard_link, new=1)
+
+        self._web3_http_provider = web3_http_provider
+        self._block_number = block_number
 
     def upload_mod(self, mod_paths):
         def everything(s):

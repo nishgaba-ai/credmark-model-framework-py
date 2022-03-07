@@ -94,7 +94,7 @@ class Address(str):
         return not self > other
 
     @classmethod
-    def valid(cls, addr):
+    def valid(cls, addr) -> bool:
         try:
             validate_address(addr)
         except Exception:
@@ -102,7 +102,7 @@ class Address(str):
         return True
 
     @property
-    def checksum(self):
+    def checksum(self) -> str:
         return self._checksum
 
 

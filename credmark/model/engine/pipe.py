@@ -10,7 +10,7 @@ from typing import (
 
 import uuid
 
-T = TypeVar('T')
+TaskType = TypeVar('T')
 
 
 def call(func, *args, **kwargs):
@@ -38,12 +38,12 @@ class ModelTask():
     pass
 
 
-class Task(Generic[T]):
+class Task(Generic[TaskType]):
     """
     input is a tuple of value input, task inputs
     """
 
-    def __init__(self, name, f, input: Tuple[List[Any], List['Task[T]']] = ([], [])):
+    def __init__(self, name, f, input: Tuple[List[Any], List['Task[TaskType]']] = ([], [])):
         self._task_name = name
         self._uuid_name = f.__name__ + '-' + str(uuid.uuid4())
         self._f = f

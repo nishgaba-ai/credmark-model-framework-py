@@ -1,7 +1,7 @@
 import webbrowser
-import uuid
-import inspect
 from typing import Any, Dict, List
+import tempfile
+import zipfile
 
 from typing import (
     Dict,
@@ -23,6 +23,7 @@ from dask.optimization import (
     inline_functions,
     fuse,
 )
+from credmark.model.errors import ModelRunError
 
 from credmark.types.data.address import Address
 
@@ -39,33 +40,32 @@ class Cluster():
     A class provides launch and/or connect to a Dask Host.
     """
 
-    @staticmethod
-    def call(f, *args, **kwargs):
-        return f(*args, **kwargs)
-
     def __init__(self,
                  web3_http_provider: str,
                  block_number: int,
-                 address=None,
-                 n_workers=10,
-                 threads_per_worker=1,
-                 open_browser=False,
+                 cluster: str,
+                 model_paths: List[str],
+                 open_browser=False
                  ):
-        if address is not None:
-            if address == 'sequence':
-                client = 'sequence'
-                print('Use sequence cluster')
-                dashboard_link = None
-            else:
-                client = dask_dist.Client(address=address, set_as_default=False,)
-                print(
-                    f'Connected to cluster at {address} with dashboard at {client.dashboard_link}')
-                dashboard_link = client.dashboard_link
-        else:
+        threads_per_worker = 1
+        if cluster == 'sequence':
+            client = 'sequence'
+            print('Use sequence cluster')
+            dashboard_link = None
+        elif cluster.startswith('tcp://'):
+            client = dask_dist.Client(address=cluster, set_as_default=False,)
+            print(f'Connected to cluster at {cluster} with dashboard at {client.dashboard_link}')
+            dashboard_link = client.dashboard_link
+            breakpoint()
+            self.upload_mods(model_paths)
+        elif cluster.startswith('localhost:'):
+            n_workers = int(cluster[cluster.index(':') + 1:])
             client = dask_dist.Client(
                 n_workers=n_workers, threads_per_worker=threads_per_worker, set_as_default=False,)
             print(f'Launched local cluster with dashboard at {client.dashboard_link}')
             dashboard_link = client.dashboard_link
+        else:
+            raise ModelRunError(f'Invalid cluster setup config = {cluster}')
 
         self.__client = client
         if open_browser and dashboard_link is not None:
@@ -73,6 +73,47 @@ class Cluster():
 
         self.web3_http_provider = web3_http_provider
         self.block_number = block_number
+
+    def upload_mods(self, mod_paths):
+        def everything(s):
+            # print(s)
+            return True
+
+        fp = tempfile.NamedTemporaryFile('w', suffix='.zip', prefix='models_pkg_')
+        fp.close()
+
+        with zipfile.PyZipFile(fp.name, mode="w", optimize=2) as zip_pkg:
+            for mod_dir in mod_paths:
+                all_init_files = []
+                fp_init = os.path.join(mod_dir, '__init__.py')
+                if not os.path.isfile(fp_init):
+                    with open(fp_init, 'w') as f:
+                        f.write('')
+                        all_init_files.append(fp_init)
+                for root, dirs, files in os.walk(mod_dir):
+                    for name in dirs:
+                        if name != '__pycache__':
+                            fp_init = os.path.join(root, name, '__init__.py')
+                            if not os.path.isfile(fp_init):
+                                with open(fp_init, 'w') as f:
+                                    f.write('')
+                                    all_init_files.append(fp_init)
+
+                zip_pkg.writepy(mod_dir, filterfunc=everything)
+
+        self.client.upload_file(fp.name)
+        self.client.submit(lambda x: sys.path, 0).result()
+        for mod_dir in mod_paths:
+            mod = importlib.import_module(mod_dir)
+            self.client.submit(lambda x, mod=mod: reload_models(mod), 1).result()
+        os.remove(fp.name)
+
+    @property
+    def client(self):
+        if isinstance(self.__client, str):
+            raise ModelRunError('Use sequence cluster now. There no cluster client method')
+        else:
+            return self.__client
 
     def init_web3(self, force=False):
         worker = dask_dist.get_worker()
@@ -134,10 +175,6 @@ class Cluster():
         with worker._lock:
             result = contract_func(*param).call()
             return result
-
-    @property
-    def client(self):
-        return self.__client
 
     def clear_all(self):
         # clean all futures

@@ -68,7 +68,7 @@ class EngineModelContext(ModelContext):
         web3_registry = Web3Registry(chain_to_provider_url)
 
         context = EngineModelContext(
-            chain_id, block_number, web3_registry, run_id, depth, model_loader, api, cluster, model_loader.model_paths)
+            chain_id, block_number, web3_registry, run_id, depth, model_loader, api, cluster)
 
         # We set the block_number in the context so we pass in
         # None for block_number to the run_model method.
@@ -94,9 +94,8 @@ class EngineModelContext(ModelContext):
                  depth: int,
                  model_loader: ModelLoader,
                  api: Union[ModelApi, None],
-                 cluster: Union[str, None],
-                 model_paths: List[str]):
-        super().__init__(chain_id, block_number, web3_registry, cluster, model_paths)
+                 cluster: Union[str, None]):
+        super().__init__(chain_id, block_number, web3_registry, cluster, model_loader.model_paths)
         self.run_id = run_id
         self.__depth = depth
         self.__dependencies = {}
@@ -192,52 +191,41 @@ class EngineModelContext(ModelContext):
             raise MaxModelRunDepthError(f'Max model run depth hit {self.__depth}')
 
         if model_class is not None:
-
-
-<< << << < HEAD
             if self.__depth == 1:
                 # At top level, we use this context
                 context = self
             else:
                 # otherwise we create a new context
-                context = EngineModelContext(self.chain_id,
-                                             self.block_number if block_number is None else block_number,
-                                             self._web3_registry,
-                                             self.run_id,
-                                             self.__depth,
-                                             self.__model_loader,
-                                             api)
 
-                input = self.transform_data_for_dto(input, model_class.inputDTO, slug, 'input')
+                context = EngineModelContext(chain_id=self.chain_id,
+                                             block_number=self.block_number if block_number is None else block_number,
+                                             web3_registry=self._web3_registry,
+                                             run_id=self.run_id,
+                                             depth=self.__depth,
+                                             model_loader=self.__model_loader,
+                                             api=api,
+                                             cluster=None,
+                                             model_paths=self.__model_paths
+                                             )
 
-                ModelContext.current_context = context
-
-                model = model_class(context)
-                output = model.run(input)
-
-                output = self.transform_data_for_dto(output, model_class.outputDTO, slug, 'output')
-
-                ModelContext.current_context = self
-
-                # If we ran with a different context, we add its deps
-                if context != self:
-                    self._add_dependencies(context.dependencies)
-
-                # Now we add dependency for this run
-                version = model_class.version
-                self._add_dependency(slug, version, 1)
-== == == =
             input = self.transform_data_for_dto(input, model_class.inputDTO, slug, 'input')
 
-            model = model_class(self)  # copied the self, so we modify the copy below
-            model.context.block_number = block_number
+            ModelContext.current_context = context
 
+            model = model_class(context)
             output = model.run(input)
 
             output = self.transform_data_for_dto(output, model_class.outputDTO, slug, 'output')
+
+            ModelContext.current_context = self
+
+            # If we ran with a different context, we add its deps
+            if context != self:
+                self._add_dependencies(context.dependencies)
+
+            # Now we add dependency for this run
             version = model_class.version
             self._add_dependency(slug, version, 1)
->>>>>> > 011d031(init commit)
         else:
             # api is not None here or get_model_class() would have
             # raised an error
@@ -250,6 +238,6 @@ class EngineModelContext(ModelContext):
             if dependencies:
                 self._add_dependencies(dependencies)
 
-    self.__depth -= 1
+        self.__depth -= 1
 
-    return slug, version, output
+        return slug, version, output
