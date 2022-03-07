@@ -42,13 +42,24 @@ class ModelContext():
             ModelContext.current_context: Union[ModelContext, None] = self
 
         self.chain_id = chain_id
-        self._block_number = BlockNumber(block_number, self)
+        self._block_number = BlockNumber(block_number)
         self._model_paths = model_paths
 
         self._web3_registry = web3_registry
         self._web3_proivder_url = web3_registry.provider_url(chain_id)
         self._cluster = cluster
         self.reset_services()
+
+        if ModelContext.current_context is None:
+            ModelContext.current_context: Union[ModelContext, None] = self
+
+    @property
+    def block_number(self):
+        return self._block_number
+
+    @block_number.setter
+    def block_number(self, block_number: int):
+        self._block_number = BlockNumber(block_number)
 
     def reset_services(self):
         self._web3 = None
@@ -61,14 +72,6 @@ class ModelContext():
     @property
     def web3_proivder_url(self):
         return self._web3_proivder_url
-
-    @property
-    def block_number(self):
-        return self._block_number
-
-    @block_number.setter
-    def block_number(self, block_number: int):
-        self._block_number = BlockNumber(block_number)
 
     @property
     def web3(self) -> Web3:
