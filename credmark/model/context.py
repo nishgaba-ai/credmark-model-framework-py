@@ -36,7 +36,7 @@ class ModelContext():
 
     def __init__(self, chain_id: int, block_number: int,
                  web3_registry: Web3Registry,
-                 cluster: Union[str, None] = None,
+                 cluster_str: str,
                  model_paths: Union[List[str], None] = None):
 
         self.chain_id = chain_id
@@ -46,13 +46,13 @@ class ModelContext():
         self._web3_registry = web3_registry
         self._web3_proivder_url = web3_registry.provider_url(chain_id)
 
-        self._cluster = cluster
+        self._cluster_str = cluster_str
 
         self._web3 = None
         self._ledger = None
         self._contract_util = None
         self._historical_util = None
-        self._dask_client = None
+        self._cluster = None
         self._dask_utils = None
 
         if ModelContext.current_context is None:
@@ -71,7 +71,7 @@ class ModelContext():
         self._ledger = None
         self._contract_util = None
         self._historical_util = None
-        self._dask_client = None
+        self._cluster = None
         self._dask_utils = None
 
     @property
@@ -89,15 +89,12 @@ class ModelContext():
     @property
     def cluster(self):
         if self._cluster is None:
-            if self._cluster is None:
-                cluster = None
-            else:
-                cluster = Cluster(cluster=self._cluster,
-                                  web3_http_provider=self._web3_registry.provider_url(
-                                      self.chain_id),
-                                  block_number=self.block_number,
-                                  model_paths=[] if self._model_paths is None else self._model_paths,
-                                  open_browser=False)
+            cluster = Cluster(cluster=self._cluster_str,
+                              web3_http_provider=self._web3_registry.provider_url(
+                                  self.chain_id),
+                              block_number=self.block_number,
+                              model_paths=[] if self._model_paths is None else self._model_paths,
+                              open_browser=False)
             self._cluster = cluster
         return self._cluster
 

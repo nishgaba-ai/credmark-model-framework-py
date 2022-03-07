@@ -37,6 +37,7 @@ class EngineModelContext(ModelContext):
                                      chain_id: int,
                                      block_number: int,
                                      model_slug: str,
+                                     cluster_str: str,
                                      model_version: Union[str, None] = None,
                                      input: Union[dict, None] = None,
                                      model_loader: Union[ModelLoader,
@@ -44,8 +45,7 @@ class EngineModelContext(ModelContext):
                                      chain_to_provider_url: Union[dict[str, str], None] = None,
                                      api_url: Union[str, None] = None,
                                      run_id: Union[str, None] = None,
-                                     depth: int = 0,
-                                     cluster: Union[str, None] = None):
+                                     depth: int = 0):
         """
         Parameters:
             run_id (str | None): a string to identify a particular model run. It is
@@ -68,7 +68,7 @@ class EngineModelContext(ModelContext):
         web3_registry = Web3Registry(chain_to_provider_url)
 
         context = EngineModelContext(
-            chain_id, block_number, web3_registry, run_id, depth, model_loader, api, cluster)
+            chain_id, block_number, web3_registry, run_id, depth, model_loader, api, cluster_str)
 
         # We set the block_number in the context so we pass in
         # None for block_number to the run_model method.
@@ -94,8 +94,8 @@ class EngineModelContext(ModelContext):
                  depth: int,
                  model_loader: ModelLoader,
                  api: Union[ModelApi, None],
-                 cluster: Union[str, None]):
-        super().__init__(chain_id, block_number, web3_registry, cluster, model_loader.model_paths)
+                 cluster_str: str):
+        super().__init__(chain_id, block_number, web3_registry, cluster_str, model_loader.model_paths)
         self.run_id = run_id
         self.__depth = depth
         self.__dependencies = {}
@@ -204,9 +204,7 @@ class EngineModelContext(ModelContext):
                                              depth=self.__depth,
                                              model_loader=self.__model_loader,
                                              api=api,
-                                             cluster=None,
-                                             model_paths=self.__model_paths
-                                             )
+                                             cluster_str=self._cluster_str)
 
             input = self.transform_data_for_dto(input, model_class.inputDTO, slug, 'input')
 

@@ -2,6 +2,10 @@ import webbrowser
 from typing import Any, Dict, List
 import tempfile
 import zipfile
+import sys
+import os
+import importlib
+
 
 from typing import (
     Dict,
@@ -35,6 +39,10 @@ class DaskResult(TypedDict):
     futures: Optional[list]
 
 
+class SeqCluster:
+    pass
+
+
 class Cluster():
     """
     A class provides launch and/or connect to a Dask Host.
@@ -49,7 +57,7 @@ class Cluster():
                  ):
         threads_per_worker = 1
         if cluster == 'sequence':
-            client = 'sequence'
+            client = SeqCluster()
             print('Use sequence cluster')
             dashboard_link = None
         elif cluster.startswith('tcp://'):
@@ -110,8 +118,8 @@ class Cluster():
 
     @property
     def client(self):
-        if isinstance(self.__client, str):
-            raise ModelRunError('Use sequence cluster now. There no cluster client method')
+        if isinstance(self.__client, SeqCluster):
+            raise ModelRunError('Use sequence cluster now. There is no cluster client method')
         else:
             return self.__client
 

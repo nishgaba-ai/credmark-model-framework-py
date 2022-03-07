@@ -28,8 +28,7 @@ class Model:
     outputDTO: Union[Type[DTO], None]
 
     def __init__(self, context: ModelContext):
-        self.context = copy(context)
-        self.context.reset_services()
+        self.context = context
 
         # Configure our logger.
         self.logger = logging.getLogger(

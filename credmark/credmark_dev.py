@@ -67,7 +67,7 @@ def main():
     parser_run.add_argument('--depth', help=argparse.SUPPRESS, type=int, required=False, default=0)
     parser_run.add_argument('model-slug', default='(missing model-slug arg)',
                             help='Slug for the model to run.')
-    parser_run.add_argument('--cluster', type=str, default='sequence', required=False,
+    parser_run.add_argument('--cluster', dest='cluster_str', type=str, default='sequence', required=False,
                             help=('enable cluster with configuration: '
                                   '"sequence", '
                                   'n-process: "localhost:n" or '
@@ -176,7 +176,7 @@ def run_model(args):
         api_url: Union[str, None] = args['api_url']
         run_id: Union[str, None] = args['run_id']
         depth: int = args['depth']
-        cluster: Union[str, None] = args['cluster']
+        cluster_str: str = args['cluster_str']
 
         if args['input']:
             input = json.loads(args['input'])
@@ -188,14 +188,14 @@ def run_model(args):
             chain_id=chain_id,
             block_number=block_number,
             model_slug=model_slug,
+            cluster_str=cluster_str,
             model_version=model_version,
             input=input,
             model_loader=model_loader,
             chain_to_provider_url=chain_to_provider_url,
             api_url=api_url,
             run_id=run_id,
-            depth=depth,
-            cluster=cluster)
+            depth=depth)
         json.dump(result, sys.stdout)
 
     except (MaxModelRunDepthError, MissingModelError, ModelRunError) as e:
