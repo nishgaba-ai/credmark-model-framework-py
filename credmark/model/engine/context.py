@@ -1,10 +1,16 @@
 import logging
 import os
-from typing import Union
+
+from typing import (
+    Union,
+    List,
+)
+
 from credmark.model.context import ModelContext
 from credmark.model.errors import MaxModelRunDepthError, ModelRunError
 from credmark.model.engine.model_api import ModelApi
 from credmark.model.engine.model_loader import ModelLoader
+from credmark.model.engine.cluster import Pipe
 from credmark.model.web3 import Web3Registry
 from credmark.types.dto import DTO
 
@@ -38,7 +44,8 @@ class EngineModelContext(ModelContext):
                                      chain_to_provider_url: Union[dict[str, str], None] = None,
                                      api_url: Union[str, None] = None,
                                      run_id: Union[str, None] = None,
-                                     depth: int = 0):
+                                     depth: int = 0,
+                                     cluster: Union[str, None] = None):
         """
         Parameters:
             run_id (str | None): a string to identify a particular model run. It is
@@ -53,6 +60,7 @@ class EngineModelContext(ModelContext):
             model_loader = ModelLoader(['.'])
 
         api_key = os.environ.get('CREDMARK_API_KEY')
+
         # If we have an api url or a key, we create the api
         # TODO: When public api is available, we will always create the api
         api = ModelApi(api_url, api_key) if api_url or api_key else None
@@ -60,7 +68,7 @@ class EngineModelContext(ModelContext):
         web3_registry = Web3Registry(chain_to_provider_url)
 
         context = EngineModelContext(
-            chain_id, block_number, web3_registry, run_id, depth, model_loader, api)
+            chain_id, block_number, web3_registry, run_id, depth, model_loader, api, cluster)
 
         # We set the block_number in the context so we pass in
         # None for block_number to the run_model method.
@@ -85,8 +93,9 @@ class EngineModelContext(ModelContext):
                  run_id: Union[str, None],
                  depth: int,
                  model_loader: ModelLoader,
-                 api: Union[ModelApi, None]):
-        super().__init__(chain_id, block_number, web3_registry)
+                 api: Union[ModelApi, None],
+                 cluster: Union[str, None]):
+        super().__init__(chain_id, block_number, web3_registry, cluster)
         self.run_id = run_id
         self.__depth = depth
         self.__dependencies = {}
@@ -114,6 +123,12 @@ class EngineModelContext(ModelContext):
             else:
                 for version, count in versions.items():
                     self._add_dependency(slug, version, count)
+
+    def run_pipe(self, pipe: Pipe, outputs: List[str]):
+        if self.cluster is not None:
+            return pipe.run(self.cluster, outputs)
+        else:
+            raise ModelRunError('No cluster client is setup')
 
     def run_model(self,
                   slug,
@@ -179,43 +194,37 @@ class EngineModelContext(ModelContext):
             raise MaxModelRunDepthError(f'Max model run depth hit {self.__depth}')
 
         if model_class is not None:
-
             if self.__depth == 1:
                 # At top level, we use this context
                 context = self
             else:
                 # otherwise we create a new context
-                if block_number is None:
-                    block_number = self.block_number
-
                 context = EngineModelContext(self.chain_id,
-                                             block_number,
+                                             self.block_number if block_number is None else block_number,
                                              self._web3_registry,
                                              self.run_id,
                                              self.__depth,
                                              self.__model_loader,
-                                             api
-                                             )
+                                             api)
 
-            input = self.transform_data_for_dto(input, model_class.inputDTO, slug, 'input')
+                input = self.transform_data_for_dto(input, model_class.inputDTO, slug, 'input')
 
-            ModelContext.current_context = context
+                ModelContext.current_context = context
 
-            model = model_class(context)
-            output = model.run(input)
+                model = model_class(context)
+                output = model.run(input)
 
-            output = self.transform_data_for_dto(output, model_class.outputDTO, slug, 'output')
+                output = self.transform_data_for_dto(output, model_class.outputDTO, slug, 'output')
 
-            ModelContext.current_context = self
+                ModelContext.current_context = self
 
-            # If we ran with a different context, we add its deps
-            if context != self:
-                self._add_dependencies(context.dependencies)
+                # If we ran with a different context, we add its deps
+                if context != self:
+                    self._add_dependencies(context.dependencies)
 
-            # Now we add dependency for this run
-            version = model_class.version
-            self._add_dependency(slug, version, 1)
-
+                # Now we add dependency for this run
+                version = model_class.version
+                self._add_dependency(slug, version, 1)
         else:
             # api is not None here or get_model_class() would have
             # raised an error
@@ -228,6 +237,6 @@ class EngineModelContext(ModelContext):
             if dependencies:
                 self._add_dependencies(dependencies)
 
-        self.__depth -= 1
+    self.__depth -= 1
 
-        return slug, version, output
+    return slug, version, output

@@ -67,6 +67,11 @@ def main():
     parser_run.add_argument('--depth', help=argparse.SUPPRESS, type=int, required=False, default=0)
     parser_run.add_argument('model-slug', default='(missing model-slug arg)',
                             help='Slug for the model to run.')
+    parser_run.add_argument('--cluster', type=str, default='sequence', required=False,
+                            help=('enable cluster with configuration: '
+                                  '"sequence", '
+                                  'n-process: "localhost:n" or '
+                                  'dask cluster, "tcp://localhost:8786"'))
     parser_run.set_defaults(func=run_model, depth=0)
 
     if len(sys.argv) == 1:
@@ -171,6 +176,7 @@ def run_model(args):
         api_url: Union[str, None] = args['api_url']
         run_id: Union[str, None] = args['run_id']
         depth: int = args['depth']
+        cluster: Union[str, None] = args['cluster']
 
         if args['input']:
             input = json.loads(args['input'])
@@ -188,7 +194,8 @@ def run_model(args):
             chain_to_provider_url=chain_to_provider_url,
             api_url=api_url,
             run_id=run_id,
-            depth=depth)
+            depth=depth,
+            cluster=cluster)
         json.dump(result, sys.stdout)
 
     except (MaxModelRunDepthError, MissingModelError, ModelRunError) as e:

@@ -2,9 +2,11 @@ from abc import abstractmethod
 from typing import Any, Type, TypeVar, Union, overload
 from .errors import ModelRunError
 from .ledger import Ledger
-from .web3 import Web3Registry
-import credmark.types
+from .web3 import Web3Registry, Web3
+from .engine.cluster import Cluster
+
 from credmark.types.dto import DTO
+from credmark.types.data.block_number import BlockNumber
 from credmark.model.utils.contract_util import ContractUtil
 from credmark.model.utils.historical_util import HistoricalUtil
 
@@ -28,14 +30,22 @@ class ModelContext():
     current_context = None  # type: ignore
 
     def __init__(self, chain_id: int, block_number: int,
-                 web3_registry: Web3Registry):
+                 web3_registry: Web3Registry,
+                 cluster: Union[str, None] = None):
         self.chain_id = chain_id
-        self._block_number = credmark.types.BlockNumber(block_number)
+
+        self._block_number = BlockNumber(block_number)
         self._web3 = None
         self._web3_registry = web3_registry
+        self._cluster = cluster
+        self.reset_services()
+
+    def reset_services(self):
+        self._web3 = None
         self._ledger = None
         self._contract_util = None
         self._historical_util = None
+        self._cluster = None
 
         if ModelContext.current_context is None:
             ModelContext.current_context: Union[ModelContext, None] = self
@@ -46,15 +56,42 @@ class ModelContext():
 
     @block_number.setter
     def block_number(self, block_number: int):
-        self._block_number = credmark.types.BlockNumber(block_number)
+        self._block_number = BlockNumber(block_number)
 
     @property
-    def web3(self):
+    def web3(self) -> Web3:
         if self._web3 is None:
             self._web3 = self._web3_registry.web3_for_chain_id(self.chain_id)
             self._web3.eth.default_block = self.block_number if \
                 self.block_number is not None else 'latest'
         return self._web3
+
+    @property
+    def cluster(self):
+        if self._cluster is None:
+            if self._cluster is None:
+                cluster = None
+            else:
+                if self._cluster == 'sequence':
+                    cluster = Cluster(web3_http_provider=self.web3.provider.endpoint_uri,
+                                      block_number=self.block_number,
+                                      address='sequence')
+                elif self._cluster.startswith('localhost:'):
+                    n_workers = int(self._cluster[self._cluster.index(':') + 1:])
+                    cluster = Cluster(web3_http_provider=self.web3.provider.endpoint_uri,
+                                      block_number=self.block_number,
+                                      address=None,
+                                      n_workers=n_workers,
+                                      open_browser=False,
+                                      )
+                else:
+                    cluster = Cluster(web3_http_provider=self.web3.provider.endpoint_uri,
+                                      block_number=self.block_number,
+                                      address=self._cluster,
+                                      open_browser=False,
+                                      )
+            self._cluster = cluster
+        return self._cluster
 
     @property
     def ledger(self) -> Ledger:
