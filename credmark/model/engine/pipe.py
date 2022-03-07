@@ -13,18 +13,20 @@ import uuid
 T = TypeVar('T')
 
 
-def call(f, *args, **kwargs):
-    return f(*args, **kwargs)
-
-# skip_n means it depends on the last n-task to finish but skip to get their inputs
+def call(func, *args, **kwargs):
+    return func(*args, **kwargs)
 
 
-def depend_on(f, skip_n, *args, **kwargs):
+def depend_on(func, skip_n, *args, **kwargs):
+    """
+    skip_n means it depends on the last n-task to finish but skip to get their inputs
+    """
+
     assert skip_n > -1
     if skip_n == 0:
-        return call(f, *args, **kwargs)
+        return call(func, *args, **kwargs)
     else:
-        return f(*args[:(-skip_n)], **kwargs)
+        return func(*args[:(-skip_n)], **kwargs)
 
 
 def depend_all(*_args, **_kwargs):

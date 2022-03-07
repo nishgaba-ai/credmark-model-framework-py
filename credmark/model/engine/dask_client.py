@@ -38,7 +38,7 @@ from credmark.types.data.block_number import BlockNumber
 
 
 class DaskResult(TypedDict):
-    result: str
+    result: Any
     dsk: dict
     deps: list
     futures: Optional[list]
@@ -171,13 +171,17 @@ class DaskClient():
         except:
             raise ValueError(f'[fuse]: {e}')
 
-        try:
-            res_future = self.client.get(dsk_opt4, outputs, sync=False)
-            res_dict = {k: v.result() for k, v in zip(outputs, res_future)}
-        finally:
-            if clear:
-                # client can cache results with the same name. Use cancel to clear the calculations.
-                # [ v.cancel() for k, v in zip(outputs, res_future)]
-                return {'result': res_dict, 'dsk': dsk_opt4, 'deps': dsk_deps4}
-            else:
-                return {'result': res_dict, 'dsk': dsk_opt4, 'deps': dsk_deps4, 'futures': res_future}
+        if isinstance(self.client, str):
+            res_dict = {'result': 'TODO'}
+            return {'result': res_dict, 'dsk': dsk_opt4, 'deps': dsk_deps4}
+        else:
+            try:
+                res_future = self.client.get(dsk_opt4, outputs, sync=False)
+                res_dict = {k: v.result() for k, v in zip(outputs, res_future)}
+            finally:
+                if clear:
+                    # client can cache results with the same name. Use cancel to clear the calculations.
+                    # [ v.cancel() for k, v in zip(outputs, res_future)]
+                    return {'result': res_dict, 'dsk': dsk_opt4, 'deps': dsk_deps4}
+                else:
+                    return {'result': res_dict, 'dsk': dsk_opt4, 'deps': dsk_deps4, 'futures': res_future}
