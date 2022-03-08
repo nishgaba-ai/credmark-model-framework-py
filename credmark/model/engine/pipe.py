@@ -6,11 +6,16 @@ from typing import (
     Tuple,
     List,
     Any,
+    Dict,
 )
+
+import networkx as nx
+import matplotlib.pyplot as plt
+import dask.distributed as dask_dist
 
 import uuid
 
-TaskType = TypeVar('T')
+T = TypeVar('TaskType')
 
 
 def call(func, *args, **kwargs):
@@ -38,12 +43,12 @@ class ModelTask():
     pass
 
 
-class Task(Generic[TaskType]):
+class Task(Generic[T]):
     """
     input is a tuple of value input, task inputs
     """
 
-    def __init__(self, name, f, input: Tuple[List[Any], List['Task[TaskType]']] = ([], [])):
+    def __init__(self, name, f, input: Tuple[List[Any], List['Task[T]']] = ([], [])):
         self._task_name = name
         self._uuid_name = f.__name__ + '-' + str(uuid.uuid4())
         self._f = f
@@ -75,40 +80,51 @@ class Task(Generic[TaskType]):
 
 
 class Pipe():
-    def __init__(self, *tasks):
+    def __init__(self, *ts):
+        self._dag = nx.DiGraph()
         self._graph = {}
         self._tasks = []
         self._task_names = {}
         self._uuid_names = {}
-        self.extend(tasks)
+        self.extend(ts)
 
     def add(self, t):
         self.extend([t])
 
-    def extend(self, tasks):
-        self._tasks.extend(tasks)
-        for t in tasks:
+    def extend(self, ts):
+        self._tasks.extend(ts)
+        for t in ts:
             if t.task_name in self._uuid_names:
                 raise ValueError(
                     f'There is already a task of the same name {t.task_name} in the pipe.')
             self._uuid_names[t.task_name] = t.uuid_name
             self._task_names[t.uuid_name] = t.task_name
             self._graph[t.uuid_name] = t()
-        # TODO: check for DAG for the graph
 
+            self._dag.add_nodes_from([(t.uuid_name, {'call': t()})])
+            # d -> t
+            self._dag.add_edges_from([(d.uuid_name, t.uuid_name) for d in t.deps])
+
+        assert nx.is_directed_acyclic_graph(self._dag)
+
+    @property
     def graph(self):
         return self._graph
 
-    def run(self, client, output):
+    def draw(self):
+        nx.draw(nx.relabel_nodes(self._dag, self._task_names), with_labels=True, font_weight='bold')
+        plt.show()
+
+    def run(self, cluster: Cluster, output: List[str]):
         new_output = [self._uuid_names[v] for v in output]
-        ret = client.run_graph(self._graph, new_output)
+        ret = cluster.run_graph(self.graph, new_output)
         res_dict = ret['result']
-        new_dict = {(self._task_names.get(uuid_name, uuid_name)): v for (uuid_name, v) in res_dict.items()}
+        new_dict = {(self._task_names.get(uuid_name, uuid_name))                    : v for (uuid_name, v) in res_dict.items()}
         return new_dict
 
-    def run_plain(self, client, output):
+    def run_seq(self, output: List[str]):
         new_output = [self._uuid_names[v] for v in output]
-        ret = client.get(self._graph, new_output)
-        res_dict = ret['result']
-        new_dict = {(self._task_names.get(uuid_name, uuid_name)): v for (uuid_name, v) in res_dict.items()}
+        res_dict = cluster.run_graph(self.)
+        new_dict = {(self._task_names.get(uuid_name, uuid_name))                    : v for (uuid_name, v) in res_dict.items()}
+
         return new_dict
