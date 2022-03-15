@@ -7,6 +7,7 @@ class Account(DTO):
     """
     Accounts are a way pass addresses between models. 
     They act as a base class to any type that requires an address object. (e.g. Contracts)
+    
     """
     address: Address
 
