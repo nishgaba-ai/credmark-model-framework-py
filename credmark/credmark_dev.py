@@ -103,6 +103,29 @@ def main():
                             help='Slug for the model to run.')
     parser_run.set_defaults(func=run_model, depth=0)
 
+    parser_test = subparsers.add_parser(
+        'test', help='Test all models', aliases=['test-all-models'])
+    parser_test.add_argument('--manifests', action='store_true', default=False,
+                             help="Show full manifests")
+    parser_test.add_argument('--json', action='store_true',
+                             default=False, help="Output as json")
+    parser_test.add_argument('-b', '--block_number', type=int, required=False, default=None,
+                             help='Block number used for the context of the model run.'
+                             ' If not specified, it is set to the latest block of the chain.')
+    parser_test.add_argument('-c', '--chain_id', type=int, default=1, required=False,
+                             help='Chain ID. Defaults to 1.')
+    parser_test.add_argument('-v', '--model_version', default=None, required=False,
+                             help='Version of the model to run. Defaults to latest.')
+    parser_test.add_argument('--provider_url_map', required=False, default=None,
+                             help='JSON object of chain id to Web3 provider HTTP URL. '
+                             'Overrides settings in env vars.')
+    add_api_url_arg(parser_test)
+    parser_test.add_argument('--run_id', help=argparse.SUPPRESS, required=False, default=None)
+    parser_test.add_argument('--depth', help=argparse.SUPPRESS, type=int, required=False, default=0)
+
+    parser_test.set_defaults(func=run_model, depth=0)
+    parser_test.set_defaults(func=test_all_models)
+
     parser_build = subparsers.add_parser(
         'build', help='Build model manifest [Not required during development]',
         aliases=['build-manifest'])
@@ -344,8 +367,11 @@ def remove_manifest_file(args):
 
 
 def run_model(args):
-    exit_code = 0
+    sys.exit(run_model_no_exit(args))
 
+
+def run_model_no_exit(args):
+    exit_code = 0
     try:
         config_logging(args, 'INFO')
 
@@ -421,8 +447,23 @@ def run_model(args):
     finally:
         sys.stdout.write('\n')
         sys.stdout.flush()
+    return exit_code
 
-    sys.exit(exit_code)
+
+def test_all_models(args):
+    model_loader = load_models(args, True)
+    manifests = model_loader.loaded_model_manifests()
+    for m in manifests:
+        model_args = args
+        for i, v in m.items():
+            if i == 'slug':
+                model_args['model-slug'] = v
+            else:
+                if i == 'input':
+                    input_examples = dto_schema_viz(
+                        v, v.get('title', 'Object'), v, 0, 'example', only_required=False, tag='top', limit=10)
+                    model_args['input'] = json.dumps(input_examples[0])
+        exit_code = run_model_no_exit(model_args)
 
 
 if __name__ == '__main__':
