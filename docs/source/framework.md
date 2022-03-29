@@ -1,4 +1,4 @@
-# API
+# Framework
 
 ```{eval-rst}
 .. autosummary::
