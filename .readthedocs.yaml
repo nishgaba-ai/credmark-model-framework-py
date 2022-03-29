@@ -28,7 +28,8 @@ sphinx:
 python:
   install:
     - requirements: requirements.txt
+    - requirements: docs/requirements.txt
     - method: pip
       path: .
       extra_requirements:
-        - myst_parser
+        - docs
