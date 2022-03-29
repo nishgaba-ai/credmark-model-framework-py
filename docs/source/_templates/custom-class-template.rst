@@ -12,7 +12,7 @@
    {% if methods %}
    .. rubric:: {{ _('Methods') }}
 
-   .. autoclass::
+   .. autosummary::
       :nosignatures:
    {% for item in methods %}
       {%- if not item.startswith('_') %}
@@ -26,7 +26,7 @@
    {% if attributes %}
    .. rubric:: {{ _('Attributes') }}
 
-   .. autoclass::
+   .. autosummary::
    {% for item in attributes %}
       ~{{ name }}.{{ item }}
    {%- endfor %}
