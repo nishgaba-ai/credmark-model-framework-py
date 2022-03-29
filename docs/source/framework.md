@@ -5,4 +5,5 @@
    :toctree: generated
 
    credmark.model
+   credmark.types
 ```
