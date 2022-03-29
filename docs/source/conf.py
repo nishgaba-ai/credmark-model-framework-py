@@ -16,7 +16,12 @@ extensions = [
     'sphinx.ext.doctest',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
-    'sphinx.ext.intersphinx'
+    'sphinx.ext.intersphinx',
+    "myst_parser",
+]
+
+myst_enable_extensions = [
+    "deflist",
 ]
 
 intersphinx_mapping = {
