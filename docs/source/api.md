@@ -19,7 +19,7 @@
    :recursive:
 
    credmark.model.ledger
-   credmark.model.describe
+   credmark.model.describe.describe
    credmark.model.errors
    credmark.dto
    credmark.types

@@ -74,7 +74,7 @@ class ModelContext:
     The other args that you can pass to context.run_model() (besides slug) can
     passed to the method call, for example:
 
-      context.models.rpc.get_blocknumber(input=dict(timestamp=1438270017))
+      context.models.rpc.get_blocknumber(timestamp=1438270017)
 
     """
     _current_context: ClassVar = None
