@@ -134,10 +134,16 @@ class ModelContext:
 
     @property
     def chain_id(self):
+        """
+        Context chain id as an integer
+        """
         return self._chain_id
 
     @property
     def block_number(self):
+        """
+        Context block number. A credmark.types.BlockNumber instance.
+        """
         return self._block_number
 
     @block_number.setter
@@ -146,6 +152,9 @@ class ModelContext:
 
     @property
     def web3(self):
+        """
+        A configured web3 instance
+        """
         if self._web3 is None:
             self._web3 = self._web3_registry.web3_for_chain_id(self.chain_id)
             self._web3.eth.default_block = self.block_number if \
