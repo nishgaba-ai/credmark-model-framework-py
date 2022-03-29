@@ -9,7 +9,7 @@
    credmark.model.base.Model
    credmark.model.context.ModelContext
    credmark.model.utils.contract_util.ContractUtil
-   credmark.model.historical_util.HistoricalUtil
+   credmark.model.utils.historical_util.HistoricalUtil
 ```
 
 ```{eval-rst}
