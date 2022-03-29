@@ -27,6 +27,13 @@ myst_enable_extensions = [
 
 autosummary_generate = True
 
+autosummary_filename_map = {
+    'credmark.types.data.account::IterableListGenericDTO[Account]':
+    'credmark.types.data.account::IterableListGenericDTO_Account',
+    'credmark.types.data.token::IterableListGenericDTO[Token]':
+    'credmark.types.data.token::IterableListGenericDTO_Token'
+}
+
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'sphinx': ('https://www.sphinx-doc.org/en/master/', None),
