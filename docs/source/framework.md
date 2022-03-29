@@ -6,6 +6,4 @@
    :recursive:
 
    credmark
-   credmark.model
-   credmark.types
 ```
