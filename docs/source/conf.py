@@ -17,16 +17,26 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
-    "myst_parser",
+    'sphinx.ext.viewcode',
+    'sphinx_autodoc_typehints',
+    'myst_parser',
 ]
 
 myst_enable_extensions = [
-    "deflist",
-    "colon_fence",
+    'deflist',
+    'colon_fence',
 ]
 
 autosummary_generate = True
 autosummary_imported_members = True
+
+autoclass_content = "both"  # Add __init__ doc (ie. params) to class summaries
+html_show_sourcelink = False  # Remove 'view source code' from top of page (for html, not python)
+autodoc_inherit_docstrings = False  # If no docstring, inherit from base class
+set_type_checking_flag = True  # Enable 'expensive' imports for sphinx_autodoc_typehints
+# autodoc_typehints = "description" # Sphinx-native method. Not as good as sphinx_autodoc_typehints
+add_module_names = False  # Remove namespaces from class/method signatures
+
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
@@ -39,6 +49,13 @@ templates_path = ['_templates']
 # -- Options for HTML output
 
 html_theme = 'sphinx_rtd_theme'
+
+html_css_files = ["readthedocs-custom.css"]  # Override some CSS settings
+
+# Add any paths that contain custom static files (such as style sheets) here,
+# relative to this directory. They are copied after the builtin static files,
+# so a file named "default.css" will overwrite the builtin "default.css".
+html_static_path = ['_static']
 
 # -- Options for EPUB output
 epub_show_urls = 'footnote'
