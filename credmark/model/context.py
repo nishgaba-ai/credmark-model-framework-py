@@ -48,8 +48,11 @@ class ModelContext:
 
     Instance attributes:
         chain_id (int): chain ID, ex 1
+
         block_number (int): default block number
+
         web3 (Web3): a configured web3 instance for RPC calls
+
         models: an object that has a virtual method for every model
 
     Methods:
@@ -61,12 +64,16 @@ class ModelContext:
     call, with any "-" in the model name replaced with "_".
 
     For example:
+
     - context.run_model('example.echo') becomes context.models.example.echo()
+
     - context.run_model('example.ledger-blocks') becomes context.models.example.ledger_blocks()
+
     - context.run_model('var-model') becomes context.models.var_model()
 
     The other args that you can pass to context.run_model() (besides slug) can
     passed to the method call, for example:
+
       context.models.rpc.get_blocknumber(input=dict(timestamp=1438270017))
 
     """
@@ -112,7 +119,7 @@ class ModelContext:
         # type hint
         ModelContext._current_context: Union[ModelContext, None]
 
-        self.chain_id = chain_id
+        self._chain_id = chain_id
         self._block_number = credmark.types.BlockNumber(block_number)
         self._web3 = None
         self._web3_registry = web3_registry
@@ -124,6 +131,10 @@ class ModelContext:
         # We don't pass the block_number so it uses the default
         # (our context) block number.
         self.models = ModelContext.Models(self)
+
+    @property
+    def chain_id(self):
+        return self._chain_id
 
     @property
     def block_number(self):
